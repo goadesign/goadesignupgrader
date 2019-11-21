@@ -46,6 +46,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "Resource":
 					// Replace Resource with Service.
 					fun.Name = "Service"
+				case "Action":
+					// Replace Action with Method.
+					fun.Name = "Method"
 				}
 			}
 			return true
