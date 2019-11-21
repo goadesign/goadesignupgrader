@@ -31,6 +31,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	nodeFilter := []ast.Node{
 		(*ast.ImportSpec)(nil),
+		(*ast.CallExpr)(nil),
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
@@ -55,6 +56,20 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}}},
 				})
 			}
+		case *ast.CallExpr:
+			fun, ok := n.Fun.(*ast.Ident)
+			if !ok {
+				return
+			}
+			switch fun.Name {
+			case "MediaType":
+				pass.Report(analysis.Diagnostic{
+					Pos: fun.Pos(), Message: `MediaType should be replaced with ResultType`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("ResultType")},
+					}}},
+				})
+			}
 		}
 	})
 
@@ -73,9 +88,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "Action":
 					// Replace Action with Method.
 					fun.Name = "Method"
-				case "MediaType":
-					// Replace MediaType with ResultType.
-					fun.Name = "ResultType"
 				case "GET", " HEAD", " POST", " PUT", " DELETE", " CONNECT", " OPTIONS", " TRACE", " PATCH":
 					// Replace colons with curly braces in HTTP routing DSLs.
 					for _, arg := range n.Args {
