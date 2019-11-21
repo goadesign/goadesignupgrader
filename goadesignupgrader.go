@@ -1,6 +1,7 @@
 package goadesignupgrader
 
 import (
+	"go/ast"
 	"go/format"
 	"os"
 
@@ -33,6 +34,22 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		// Add imports for v3.
 		astutil.AddNamedImport(pass.Fset, file, ".", "goa.design/goa/v3/dsl")
+
+		astutil.Apply(file, func(c *astutil.Cursor) bool {
+			switch n := c.Node().(type) {
+			case *ast.CallExpr:
+				fun, ok := n.Fun.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				switch fun.Name {
+				case "Resource":
+					// Replace Resource with Service.
+					fun.Name = "Service"
+				}
+			}
+			return true
+		}, nil)
 
 		f, err := os.OpenFile(pass.Fset.File(file.Pos()).Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
