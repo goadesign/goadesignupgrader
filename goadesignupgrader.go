@@ -5,10 +5,12 @@ import (
 	"go/format"
 	"os"
 	"regexp"
+	"strconv"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/go/ast/inspector"
 )
 
 var Analyzer = &analysis.Analyzer{
@@ -25,19 +27,38 @@ const Doc = "goadesignupgrader is ..."
 var regexpWildcard = regexp.MustCompile(`/:([a-zA-Z0-9_]+)`)
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	for _, file := range pass.Files {
-		// Remove imports for v1.
-		for _, v := range []string{
-			"github.com/goadesign/goa/design",
-			"github.com/goadesign/goa/design/apidsl",
-		} {
-			astutil.DeleteImport(pass.Fset, file, v)
-			astutil.DeleteNamedImport(pass.Fset, file, ".", v)
+	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+
+	nodeFilter := []ast.Node{
+		(*ast.ImportSpec)(nil),
+	}
+	inspect.Preorder(nodeFilter, func(n ast.Node) {
+		switch n := n.(type) {
+		case *ast.ImportSpec:
+			path, err := strconv.Unquote(n.Path.Value)
+			if err != nil {
+				return
+			}
+			switch path {
+			case "github.com/goadesign/goa/design":
+				pass.Report(analysis.Diagnostic{
+					Pos: n.Pos(), Message: `"github.com/goadesign/goa/design" should be removed`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Remove", TextEdits: []analysis.TextEdit{
+						{Pos: n.Pos(), End: n.End(), NewText: []byte{}},
+					}}},
+				})
+			case "github.com/goadesign/goa/design/apidsl":
+				pass.Report(analysis.Diagnostic{
+					Pos: n.Path.Pos(), Message: `"github.com/goadesign/goa/design/apidsl" should be replaced with "goa.design/goa/v3/dsl"`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: n.Path.Pos(), End: n.Path.End(), NewText: []byte(`"goa.design/goa/v3/dsl"`)},
+					}}},
+				})
+			}
 		}
+	})
 
-		// Add imports for v3.
-		astutil.AddNamedImport(pass.Fset, file, ".", "goa.design/goa/v3/dsl")
-
+	for _, file := range pass.Files {
 		astutil.Apply(file, func(c *astutil.Cursor) bool {
 			switch n := c.Node().(type) {
 			case *ast.CallExpr:
