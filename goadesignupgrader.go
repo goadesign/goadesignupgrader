@@ -62,6 +62,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				return
 			}
 			switch fun.Name {
+			case "Action":
+				pass.Report(analysis.Diagnostic{
+					Pos: fun.Pos(), Message: `Action should be replaced with Method`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("Method")},
+					}}},
+				})
 			case "MediaType":
 				pass.Report(analysis.Diagnostic{
 					Pos: fun.Pos(), Message: `MediaType should be replaced with ResultType`,
@@ -85,9 +92,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "Resource":
 					// Replace Resource with Service.
 					fun.Name = "Service"
-				case "Action":
-					// Replace Action with Method.
-					fun.Name = "Method"
 				case "GET", " HEAD", " POST", " PUT", " DELETE", " CONNECT", " OPTIONS", " TRACE", " PATCH":
 					// Replace colons with curly braces in HTTP routing DSLs.
 					for _, arg := range n.Args {
