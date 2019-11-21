@@ -3,6 +3,7 @@ package goadesignupgrader
 import (
 	"go/ast"
 	"go/format"
+	"go/token"
 	"os"
 	"regexp"
 	"strconv"
@@ -83,6 +84,33 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("ResultType")},
 					}}},
 				})
+			case "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH":
+				var (
+					hasColon bool
+					replaced string
+					pos      token.Pos
+					end      token.Pos
+				)
+				for _, arg := range n.Args {
+					b, ok := arg.(*ast.BasicLit)
+					if !ok {
+						continue
+					}
+					replaced = replaceWildcard(b.Value)
+					if replaced != b.Value {
+						hasColon = true
+						pos = b.Pos()
+						end = b.End()
+					}
+				}
+				if hasColon {
+					pass.Report(analysis.Diagnostic{
+						Pos: pos, Message: `colons in HTTP routing DSLs should be replaced with curly braces`,
+						SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+							{Pos: pos, End: end, NewText: []byte(replaced)},
+						}}},
+					})
+				}
 			}
 		}
 	})
@@ -90,19 +118,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		astutil.Apply(file, func(c *astutil.Cursor) bool {
 			switch n := c.Node().(type) {
-			case *ast.CallExpr:
-				fun, ok := n.Fun.(*ast.Ident)
-				if !ok {
-					return true
-				}
-				switch fun.Name {
-				case "GET", " HEAD", " POST", " PUT", " DELETE", " CONNECT", " OPTIONS", " TRACE", " PATCH":
-					// Replace colons with curly braces in HTTP routing DSLs.
-					for _, arg := range n.Args {
-						b := arg.(*ast.BasicLit)
-						b.Value = replaceWildcard(b.Value)
-					}
-				}
 			case *ast.Ident:
 				switch n.Name {
 				case "Integer":
