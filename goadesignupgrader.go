@@ -31,6 +31,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			astutil.DeleteNamedImport(pass.Fset, file, ".", v)
 		}
 
+		// Add imports for v3.
+		astutil.AddNamedImport(pass.Fset, file, ".", "goa.design/goa/v3/dsl")
+
 		f, err := os.OpenFile(pass.Fset.File(file.Pos()).Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
