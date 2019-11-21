@@ -1,11 +1,11 @@
 package goadesignupgrader
 
 import (
-	"go/ast"
+	"go/format"
+	"os"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
-	"golang.org/x/tools/go/ast/inspector"
 )
 
 var Analyzer = &analysis.Analyzer{
@@ -20,18 +20,15 @@ var Analyzer = &analysis.Analyzer{
 const Doc = "goadesignupgrader is ..."
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
-
-	nodeFilter := []ast.Node{
-		(*ast.Ident)(nil),
-	}
-
-	inspect.Preorder(nodeFilter, func(n ast.Node) {
-		switch n := n.(type) {
-		case *ast.Ident:
-			_ = n
+	for _, file := range pass.Files {
+		f, err := os.OpenFile(pass.Fset.File(file.Pos()).Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return nil, err
 		}
-	})
-
+		defer f.Close()
+		if err := format.Node(f, pass.Fset, file); err != nil {
+			return nil, err
+		}
+	}
 	return nil, nil
 }
