@@ -53,6 +53,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					// Replace MediaType with ResultType.
 					fun.Name = "ResultType"
 				}
+			case *ast.Ident:
+				switch n.Name {
+				case "Integer":
+					// Replace Integer with Int.
+					n.Name = "Int"
+				}
 			}
 			return true
 		}, nil)
