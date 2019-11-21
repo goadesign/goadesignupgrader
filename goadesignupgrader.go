@@ -49,6 +49,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "Action":
 					// Replace Action with Method.
 					fun.Name = "Method"
+				case "MediaType":
+					// Replace MediaType with ResultType.
+					fun.Name = "ResultType"
 				}
 			}
 			return true
