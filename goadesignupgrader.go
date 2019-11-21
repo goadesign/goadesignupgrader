@@ -94,6 +94,76 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						})
 					}
 				}
+			case *ast.ExprStmt:
+				cal, ok := n.X.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				fun, ok := cal.Fun.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				switch fun.Name {
+				case "BasePath":
+					// Replace BasePath with Path and move it into HTTP.
+					fun.Name = "Path"
+					switch nn := c.Parent().(type) {
+					case *ast.BlockStmt:
+						var (
+							index int
+							http  *ast.CallExpr
+						)
+						for i, v := range nn.List {
+							switch nnn := v.(type) {
+							case *ast.ExprStmt:
+								call, ok := nnn.X.(*ast.CallExpr)
+								if !ok {
+									continue
+								}
+								funn, ok := call.Fun.(*ast.Ident)
+								if !ok {
+									continue
+								}
+								switch funn.Name {
+								case "HTTP":
+									http = call
+								case "BasePath":
+									index = i
+								}
+							}
+						}
+						if http == nil {
+							http = &ast.CallExpr{
+								Fun: &ast.Ident{
+									Name: "HTTP",
+								},
+								Args: []ast.Expr{},
+							}
+							nn.List = append([]ast.Stmt{
+								&ast.ExprStmt{
+									X: http,
+								},
+							}, nn.List...)
+							index++
+						}
+						var (
+							ok   bool
+							funn *ast.FuncLit
+						)
+						if len(http.Args) > 0 {
+							funn, ok = http.Args[len(http.Args)-1].(*ast.FuncLit)
+						}
+						if !ok {
+							funn = &ast.FuncLit{
+								Type: &ast.FuncType{},
+								Body: &ast.BlockStmt{},
+							}
+							http.Args = append(http.Args, funn)
+						}
+						funn.Body.List = append(funn.Body.List, n)
+						nn.List = append(nn.List[:index], nn.List[index+1:]...)
+					}
+				}
 			}
 			return true
 		}, nil)
