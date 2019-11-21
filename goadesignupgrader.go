@@ -67,6 +67,32 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "Integer":
 					// Replace Integer with Int.
 					n.Name = "Int"
+				case "DateTime":
+					// Replace DateTime with String + Format(FormatDateTime).
+					n.Name = "String"
+					switch nn := c.Parent().(type) {
+					case *ast.CallExpr:
+						fun, ok := nn.Args[len(nn.Args)-1].(*ast.FuncLit)
+						if !ok {
+							fun = &ast.FuncLit{
+								Type: &ast.FuncType{},
+								Body: &ast.BlockStmt{},
+							}
+							nn.Args = append(nn.Args, fun)
+						}
+						fun.Body.List = append(fun.Body.List, &ast.ExprStmt{
+							X: &ast.CallExpr{
+								Fun: &ast.Ident{
+									Name: "Format",
+								},
+								Args: []ast.Expr{
+									&ast.Ident{
+										Name: "FormatDateTime",
+									},
+								},
+							},
+						})
+					}
 				}
 			}
 			return true
