@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/format"
 	"os"
+	"regexp"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -20,6 +21,8 @@ var Analyzer = &analysis.Analyzer{
 }
 
 const Doc = "goadesignupgrader is ..."
+
+var regexpWildcard = regexp.MustCompile(`/:([a-zA-Z0-9_]+)`)
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
@@ -52,6 +55,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				case "MediaType":
 					// Replace MediaType with ResultType.
 					fun.Name = "ResultType"
+				case "GET", " HEAD", " POST", " PUT", " DELETE", " CONNECT", " OPTIONS", " TRACE", " PATCH":
+					// Replace colons with curly braces in HTTP routing DSLs.
+					for _, arg := range n.Args {
+						b := arg.(*ast.BasicLit)
+						b.Value = replaceWildcard(b.Value)
+					}
 				}
 			case *ast.Ident:
 				switch n.Name {
@@ -73,4 +82,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 	}
 	return nil, nil
+}
+
+func replaceWildcard(s string) string {
+	return regexpWildcard.ReplaceAllString(s, "/{$1}")
 }
