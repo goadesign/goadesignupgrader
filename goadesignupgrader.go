@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
+	"golang.org/x/tools/go/ast/astutil"
 )
 
 var Analyzer = &analysis.Analyzer{
@@ -21,6 +22,15 @@ const Doc = "goadesignupgrader is ..."
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
+		// Remove imports for v1.
+		for _, v := range []string{
+			"github.com/goadesign/goa/design",
+			"github.com/goadesign/goa/design/apidsl",
+		} {
+			astutil.DeleteImport(pass.Fset, file, v)
+			astutil.DeleteNamedImport(pass.Fset, file, ".", v)
+		}
+
 		f, err := os.OpenFile(pass.Fset.File(file.Pos()).Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
