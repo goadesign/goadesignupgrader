@@ -33,6 +33,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	nodeFilter := []ast.Node{
 		(*ast.ImportSpec)(nil),
 		(*ast.CallExpr)(nil),
+		(*ast.Ident)(nil),
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
@@ -112,6 +113,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					})
 				}
 			}
+		case *ast.Ident:
+			switch n.Name {
+			case "Integer":
+				pass.Report(analysis.Diagnostic{
+					Pos: n.Pos(), Message: `Integer should be replaced with Int`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: n.Pos(), End: n.End(), NewText: []byte("Int")},
+					}}},
+				})
+			}
 		}
 	})
 
@@ -120,9 +131,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			switch n := c.Node().(type) {
 			case *ast.Ident:
 				switch n.Name {
-				case "Integer":
-					// Replace Integer with Int.
-					n.Name = "Int"
 				case "DateTime":
 					// Replace DateTime with String + Format(FormatDateTime).
 					n.Name = "String"
