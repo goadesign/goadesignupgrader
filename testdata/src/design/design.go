@@ -11,7 +11,8 @@ var UserMedia = MediaType("application/vnd.user+json", func() { // want `MediaTy
 })
 
 var _ = Resource("user", func() { // want `Resource should be replaced with Service`
+	BasePath("/users")      // want `BasePath should be replaced with Path and move it into HTTP`
 	Action("show", func() { // want `Action should be replaced with Method`
-		Routing(GET("/users/:user_id")) // want `colons in HTTP routing DSLs should be replaced with curly braces`
+		Routing(GET("/:user_id")) // want `colons in HTTP routing DSLs should be replaced with curly braces`
 	})
 })

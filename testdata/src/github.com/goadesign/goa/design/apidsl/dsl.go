@@ -23,3 +23,7 @@ func Routing(routs ...interface{}) interface{} {
 func GET(path string, dsl ...func()) interface{} {
 	return nil
 }
+
+func BasePath(val string) {
+	return
+}

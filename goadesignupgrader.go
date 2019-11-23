@@ -5,13 +5,11 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
-	"os"
 	"regexp"
 	"strconv"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
-	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ast/inspector"
 )
 
@@ -35,6 +33,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		(*ast.ImportSpec)(nil),
 		(*ast.CallExpr)(nil),
 		(*ast.Ident)(nil),
+		(*ast.BlockStmt)(nil),
 	}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		switch n := n.(type) {
@@ -165,95 +164,62 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}}},
 				})
 			}
-		}
-	})
-
-	for _, file := range pass.Files {
-		astutil.Apply(file, func(c *astutil.Cursor) bool {
-			switch n := c.Node().(type) {
-			case *ast.ExprStmt:
-				cal, ok := n.X.(*ast.CallExpr)
+		case *ast.BlockStmt:
+			var (
+				basePath *ast.ExprStmt
+				pos      token.Pos
+				end      token.Pos
+			)
+			for _, s := range n.List {
+				stmt, ok := s.(*ast.ExprStmt)
 				if !ok {
-					return true
+					continue
+				}
+				cal, ok := stmt.X.(*ast.CallExpr)
+				if !ok {
+					continue
 				}
 				fun, ok := cal.Fun.(*ast.Ident)
 				if !ok {
-					return true
+					continue
 				}
 				switch fun.Name {
 				case "BasePath":
-					// Replace BasePath with Path and move it into HTTP.
 					fun.Name = "Path"
-					switch nn := c.Parent().(type) {
-					case *ast.BlockStmt:
-						var (
-							index int
-							http  *ast.CallExpr
-						)
-						for i, v := range nn.List {
-							switch nnn := v.(type) {
-							case *ast.ExprStmt:
-								call, ok := nnn.X.(*ast.CallExpr)
-								if !ok {
-									continue
-								}
-								funn, ok := call.Fun.(*ast.Ident)
-								if !ok {
-									continue
-								}
-								switch funn.Name {
-								case "HTTP":
-									http = call
-								case "BasePath":
-									index = i
-								}
-							}
-						}
-						if http == nil {
-							http = &ast.CallExpr{
-								Fun: &ast.Ident{
-									Name: "HTTP",
-								},
-								Args: []ast.Expr{},
-							}
-							nn.List = append([]ast.Stmt{
-								&ast.ExprStmt{
-									X: http,
-								},
-							}, nn.List...)
-							index++
-						}
-						var (
-							ok   bool
-							funn *ast.FuncLit
-						)
-						if len(http.Args) > 0 {
-							funn, ok = http.Args[len(http.Args)-1].(*ast.FuncLit)
-						}
-						if !ok {
-							funn = &ast.FuncLit{
-								Type: &ast.FuncType{},
-								Body: &ast.BlockStmt{},
-							}
-							http.Args = append(http.Args, funn)
-						}
-						funn.Body.List = append(funn.Body.List, n)
-						nn.List = append(nn.List[:index], nn.List[index+1:]...)
-					}
+					basePath = stmt
+					pos = stmt.Pos()
+					end = stmt.End()
 				}
 			}
-			return true
-		}, nil)
+			if basePath == nil {
+				return
+			}
+			http := &ast.CallExpr{
+				Fun: &ast.Ident{
+					Name: "HTTP",
+				},
+				Args: []ast.Expr{
+					&ast.FuncLit{
+						Type: &ast.FuncType{},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{basePath},
+						},
+					},
+				},
+			}
+			var buf bytes.Buffer
+			if err := format.Node(&buf, token.NewFileSet(), http); err != nil {
+				return
+			}
+			pass.Report(analysis.Diagnostic{
+				Pos: pos, Message: `BasePath should be replaced with Path and move it into HTTP`,
+				SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+					{Pos: pos, End: end, NewText: buf.Bytes()},
+				}}},
+			})
+		}
+	})
 
-		f, err := os.OpenFile(pass.Fset.File(file.Pos()).Name(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		if err := format.Node(f, pass.Fset, file); err != nil {
-			return nil, err
-		}
-	}
 	return nil, nil
 }
 
