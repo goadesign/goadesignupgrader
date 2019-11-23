@@ -6,7 +6,8 @@ import (
 )
 
 var UserMedia = MediaType("application/vnd.user+json", func() { // want `MediaType should be replaced with ResultType`
-	Attribute("id", Integer) // want `Integer should be replaced with Int`
+	Attribute("id", Integer)          // want `Integer should be replaced with Int`
+	Attribute("created_at", DateTime) // want `DateTime should be replaced with String`
 })
 
 var _ = Resource("user", func() { // want `Resource should be replaced with Service`

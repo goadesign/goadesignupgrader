@@ -1,6 +1,7 @@
 package goadesignupgrader
 
 import (
+	"bytes"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -112,6 +113,47 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						}}},
 					})
 				}
+			default:
+				for _, arg := range n.Args {
+					i, ok := arg.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					switch i.Name {
+					case "DateTime":
+						i.Name = "String"
+						fun, ok := n.Args[len(n.Args)-1].(*ast.FuncLit)
+						if !ok {
+							fun = &ast.FuncLit{
+								Type: &ast.FuncType{},
+								Body: &ast.BlockStmt{},
+							}
+							n.Args = append(n.Args, fun)
+						}
+						fun.Body.List = append(fun.Body.List, &ast.ExprStmt{
+							X: &ast.CallExpr{
+								Fun: &ast.Ident{
+									Name: "Format",
+								},
+								Args: []ast.Expr{
+									&ast.Ident{
+										Name: "FormatDateTime",
+									},
+								},
+							},
+						})
+						var buf bytes.Buffer
+						if err := format.Node(&buf, token.NewFileSet(), n); err != nil {
+							return
+						}
+						pass.Report(analysis.Diagnostic{
+							Pos: i.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`,
+							SuggestedFixes: []analysis.SuggestedFix{
+								{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
+							},
+						})
+					}
+				}
 			}
 		case *ast.Ident:
 			switch n.Name {
@@ -129,35 +171,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		astutil.Apply(file, func(c *astutil.Cursor) bool {
 			switch n := c.Node().(type) {
-			case *ast.Ident:
-				switch n.Name {
-				case "DateTime":
-					// Replace DateTime with String + Format(FormatDateTime).
-					n.Name = "String"
-					switch nn := c.Parent().(type) {
-					case *ast.CallExpr:
-						fun, ok := nn.Args[len(nn.Args)-1].(*ast.FuncLit)
-						if !ok {
-							fun = &ast.FuncLit{
-								Type: &ast.FuncType{},
-								Body: &ast.BlockStmt{},
-							}
-							nn.Args = append(nn.Args, fun)
-						}
-						fun.Body.List = append(fun.Body.List, &ast.ExprStmt{
-							X: &ast.CallExpr{
-								Fun: &ast.Ident{
-									Name: "Format",
-								},
-								Args: []ast.Expr{
-									&ast.Ident{
-										Name: "FormatDateTime",
-									},
-								},
-							},
-						})
-					}
-				}
 			case *ast.ExprStmt:
 				cal, ok := n.X.(*ast.CallExpr)
 				if !ok {

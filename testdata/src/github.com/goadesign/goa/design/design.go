@@ -1,3 +1,6 @@
 package design
 
-var Integer = "Integer"
+var (
+	Integer  = "Integer"
+	DateTime = "DateTime"
+)
