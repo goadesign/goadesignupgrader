@@ -27,4 +27,5 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 * `POST`
 * `PUT`
 * `Resource`
+* `Routing`
 * `TRACE`
