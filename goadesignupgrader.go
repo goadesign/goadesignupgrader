@@ -85,33 +85,55 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("ResultType")},
 					}}},
 				})
-			case "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH":
-				var (
-					hasColon bool
-					replaced string
-					pos      token.Pos
-					end      token.Pos
-				)
+			case "Routing":
+				fun := &ast.FuncLit{
+					Type: &ast.FuncType{},
+					Body: &ast.BlockStmt{},
+				}
 				for _, arg := range n.Args {
-					b, ok := arg.(*ast.BasicLit)
+					cal, ok := arg.(*ast.CallExpr)
 					if !ok {
 						continue
 					}
-					replaced = replaceWildcard(b.Value)
-					if replaced != b.Value {
-						hasColon = true
-						pos = b.Pos()
-						end = b.End()
+					i, ok := cal.Fun.(*ast.Ident)
+					if !ok {
+						continue
 					}
-				}
-				if hasColon {
-					pass.Report(analysis.Diagnostic{
-						Pos: pos, Message: `colons in HTTP routing DSLs should be replaced with curly braces`,
-						SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
-							{Pos: pos, End: end, NewText: []byte(replaced)},
-						}}},
+					switch i.Name {
+					case "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH":
+						for _, arg := range cal.Args {
+							b, ok := arg.(*ast.BasicLit)
+							if !ok {
+								continue
+							}
+							replaced := replaceWildcard(b.Value)
+							if replaced != b.Value {
+								b.Value = replaced
+							}
+						}
+					}
+					fun.Body.List = append(fun.Body.List, &ast.ExprStmt{
+						X: cal,
 					})
 				}
+				http := &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "HTTP",
+					},
+					Args: []ast.Expr{
+						fun,
+					},
+				}
+				var buf bytes.Buffer
+				if err := format.Node(&buf, token.NewFileSet(), http); err != nil {
+					return
+				}
+				pass.Report(analysis.Diagnostic{
+					Pos: n.Pos(), Message: `Routing should be replaced with HTTP and colons in HTTP routing DSLs should be replaced with curly braces`,
+					SuggestedFixes: []analysis.SuggestedFix{
+						{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
+					},
+				})
 			default:
 				for _, arg := range n.Args {
 					i, ok := arg.(*ast.Ident)
