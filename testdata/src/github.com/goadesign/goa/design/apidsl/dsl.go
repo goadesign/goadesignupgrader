@@ -31,3 +31,7 @@ func BasePath(val string) {
 func HashOf(k, v interface{}, dsls ...func()) interface{} {
 	return nil
 }
+
+func Metadata(name string, value ...string) {
+	return
+}

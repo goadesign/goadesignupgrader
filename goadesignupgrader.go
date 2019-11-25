@@ -92,6 +92,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("MapOf")},
 					}}},
 				})
+			case "Metadata":
+				pass.Report(analysis.Diagnostic{
+					Pos: fun.Pos(), Message: `Metadata should be replaced with Meta`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("Meta")},
+					}}},
+				})
 			case "Routing":
 				fun := &ast.FuncLit{
 					Type: &ast.FuncType{},
