@@ -85,6 +85,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("ResultType")},
 					}}},
 				})
+			case "HashOf":
+				pass.Report(analysis.Diagnostic{
+					Pos: fun.Pos(), Message: `HashOf should be replaced with MapOf`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("MapOf")},
+					}}},
+				})
 			case "Routing":
 				fun := &ast.FuncLit{
 					Type: &ast.FuncType{},

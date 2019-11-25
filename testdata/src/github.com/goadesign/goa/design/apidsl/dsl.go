@@ -27,3 +27,7 @@ func GET(path string, dsl ...func()) interface{} {
 func BasePath(val string) {
 	return
 }
+
+func HashOf(k, v interface{}, dsls ...func()) interface{} {
+	return nil
+}
