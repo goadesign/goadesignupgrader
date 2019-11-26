@@ -155,35 +155,56 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					},
 				})
 			case "Response":
+				var (
+					messages = []string{}
+				)
 				for _, arg := range n.Args {
-					i, ok := arg.(*ast.Ident)
-					if !ok {
-						continue
-					}
-					switch i.Name {
-					case "Continue", "SwitchingProtocols",
-						"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
-						"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect",
-						"BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
-						"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
-						"Gone", "LengthRequired", "PreconditionFailed", "RequestEntityTooLarge", "RequestURITooLong",
-						"UnsupportedMediaType", "RequestedRangeNotSatisfiable", "ExpectationFailed", "Teapot", "UnprocessableEntity",
-						"InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "HTTPVersionNotSupported":
-						name := "Status" + i.Name
-						pass.Report(analysis.Diagnostic{
-							Pos: i.Pos(), Message: fmt.Sprintf(`%s should be replaced with %s`, i.Name, name),
-							SuggestedFixes: []analysis.SuggestedFix{
-								{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: i.Pos(), End: i.End(), NewText: []byte(name)}}},
-							},
-						})
+					switch t := arg.(type) {
+					case *ast.Ident:
+						switch t.Name {
+						case "Continue", "SwitchingProtocols",
+							"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
+							"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect",
+							"BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
+							"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
+							"Gone", "LengthRequired", "PreconditionFailed", "RequestEntityTooLarge", "RequestURITooLong",
+							"UnsupportedMediaType", "RequestedRangeNotSatisfiable", "ExpectationFailed", "Teapot", "UnprocessableEntity",
+							"InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "HTTPVersionNotSupported":
+							name := "Status" + t.Name
+							messages = append(messages, fmt.Sprintf(`%s should be replaced with %s`, t.Name, name))
+							t.Name = name
+						}
+					case *ast.FuncLit:
+						for _, s := range t.Body.List {
+							stmt, ok := s.(*ast.ExprStmt)
+							if !ok {
+								continue
+							}
+							cal, ok := stmt.X.(*ast.CallExpr)
+							if !ok {
+								continue
+							}
+							i, ok := cal.Fun.(*ast.Ident)
+							if !ok {
+								continue
+							}
+							switch i.Name {
+							case "Status":
+								messages = append(messages, `Status should be replaced with Code`)
+								i.Name = "Code"
+							}
+						}
 					}
 				}
-			case "Status":
+				var buf bytes.Buffer
+				if err := format.Node(&buf, token.NewFileSet(), n); err != nil {
+					return
+				}
 				pass.Report(analysis.Diagnostic{
-					Pos: fun.Pos(), Message: `Status should be replaced with Code`,
-					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
-						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("Code")},
-					}}},
+					Pos: n.Pos(), Message: strings.Join(messages, " and "),
+					SuggestedFixes: []analysis.SuggestedFix{
+						{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
+					},
 				})
 			default:
 				for _, arg := range n.Args {

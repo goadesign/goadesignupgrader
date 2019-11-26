@@ -16,8 +16,8 @@ var _ = Resource("user", func() { // want `Resource should be replaced with Serv
 	BasePath("/users")      // want `BasePath should be replaced with Path and move it into HTTP`
 	Action("show", func() { // want `Action should be replaced with Method`
 		Routing(GET("/:user_id"))        // want `Routing should be replaced with HTTP and colons in HTTP routing DSLs should be replaced with curly braces`
-		Response(OK, UserMedia, func() { // want `OK should be replaced with StatusOK`
-			Status(http.StatusOK) // want `Status should be replaced with Code`
+		Response(OK, UserMedia, func() { // want `OK should be replaced with StatusOK and Status should be replaced with Code`
+			Status(http.StatusOK)
 		})
 		Metadata("swagger:summary", "Show users") // want `Metadata should be replaced with Meta`
 	})
