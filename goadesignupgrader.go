@@ -173,6 +173,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						})
 					}
 				}
+			case "Status":
+				pass.Report(analysis.Diagnostic{
+					Pos: fun.Pos(), Message: `Status should be replaced with Code`,
+					SuggestedFixes: []analysis.SuggestedFix{{Message: "Replace", TextEdits: []analysis.TextEdit{
+						{Pos: fun.Pos(), End: fun.End(), NewText: []byte("Code")},
+					}}},
+				})
 			default:
 				for _, arg := range n.Args {
 					i, ok := arg.(*ast.Ident)

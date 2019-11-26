@@ -31,4 +31,5 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 * `PUT`
 * `Resource`
 * `Routing`
+* `Status`
 * `TRACE`

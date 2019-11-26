@@ -39,3 +39,7 @@ func Metadata(name string, value ...string) {
 func Response(name string, paramsAndDSL ...interface{}) {
 	return
 }
+
+func Status(status int) {
+	return
+}
