@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -106,7 +107,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						Type: &ast.FuncType{},
 						Body: &ast.BlockStmt{},
 					}
-					message = `Routing should be replaced with HTTP`
+					messages = []string{`Routing should be replaced with HTTP`}
 				)
 				for _, arg := range n.Args {
 					cal, ok := arg.(*ast.CallExpr)
@@ -127,7 +128,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 							replaced := replaceWildcard(b.Value)
 							if replaced != b.Value {
 								b.Value = replaced
-								message += " and colons in HTTP routing DSLs should be replaced with curly braces"
+								messages = append(messages, "colons in HTTP routing DSLs should be replaced with curly braces")
 							}
 						}
 					}
@@ -148,7 +149,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					return
 				}
 				pass.Report(analysis.Diagnostic{
-					Pos: n.Pos(), Message: message,
+					Pos: n.Pos(), Message: strings.Join(messages, " and "),
 					SuggestedFixes: []analysis.SuggestedFix{
 						{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
 					},
