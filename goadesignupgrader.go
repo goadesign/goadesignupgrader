@@ -2,6 +2,7 @@ package goadesignupgrader
 
 import (
 	"bytes"
+	"fmt"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -148,6 +149,30 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
 					},
 				})
+			case "Response":
+				for _, arg := range n.Args {
+					i, ok := arg.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					switch i.Name {
+					case "Continue", "SwitchingProtocols",
+						"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
+						"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect",
+						"BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
+						"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
+						"Gone", "LengthRequired", "PreconditionFailed", "RequestEntityTooLarge", "RequestURITooLong",
+						"UnsupportedMediaType", "RequestedRangeNotSatisfiable", "ExpectationFailed", "Teapot", "UnprocessableEntity",
+						"InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "HTTPVersionNotSupported":
+						name := "Status" + i.Name
+						pass.Report(analysis.Diagnostic{
+							Pos: i.Pos(), Message: fmt.Sprintf(`%s should be replaced with %s`, i.Name, name),
+							SuggestedFixes: []analysis.SuggestedFix{
+								{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: i.Pos(), End: i.End(), NewText: []byte(name)}}},
+							},
+						})
+					}
+				}
 			default:
 				for _, arg := range n.Args {
 					i, ok := arg.(*ast.Ident)

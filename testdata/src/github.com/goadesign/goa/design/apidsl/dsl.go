@@ -35,3 +35,7 @@ func HashOf(k, v interface{}, dsls ...func()) interface{} {
 func Metadata(name string, value ...string) {
 	return
 }
+
+func Response(name string, paramsAndDSL ...interface{}) {
+	return
+}

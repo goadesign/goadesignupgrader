@@ -7,6 +7,7 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 ## Supported diagnostics
 
 * Import declarations
+* HTTP status constants
 
 ### Supported DataTypes
 
