@@ -1,6 +1,6 @@
 package design
 
-var (
+const (
 	Boolean  = "Boolean"
 	Integer  = "Integer"
 	String   = "String"
