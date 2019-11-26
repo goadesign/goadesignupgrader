@@ -156,7 +156,17 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				})
 			case "Response":
 				var (
-					messages = []string{}
+					fun = &ast.FuncLit{
+						Type: &ast.FuncType{},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{
+								&ast.ExprStmt{
+									X: n,
+								},
+							},
+						},
+					}
+					messages = []string{"Response should be wrapped by HTTP"}
 				)
 				for _, arg := range n.Args {
 					switch t := arg.(type) {
@@ -196,8 +206,16 @@ func run(pass *analysis.Pass) (interface{}, error) {
 						}
 					}
 				}
+				http := &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "HTTP",
+					},
+					Args: []ast.Expr{
+						fun,
+					},
+				}
 				var buf bytes.Buffer
-				if err := format.Node(&buf, token.NewFileSet(), n); err != nil {
+				if err := format.Node(&buf, token.NewFileSet(), http); err != nil {
 					return
 				}
 				pass.Report(analysis.Diagnostic{
