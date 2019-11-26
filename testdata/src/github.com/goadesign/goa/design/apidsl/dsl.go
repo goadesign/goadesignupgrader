@@ -43,3 +43,7 @@ func Response(name string, paramsAndDSL ...interface{}) {
 func Status(status int) {
 	return
 }
+
+func CollectionOf(v interface{}, paramAndDSL ...interface{}) interface{} {
+	return nil
+}

@@ -101,10 +101,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}}},
 				})
 			case "Routing":
-				fun := &ast.FuncLit{
-					Type: &ast.FuncType{},
-					Body: &ast.BlockStmt{},
-				}
+				var (
+					fun = &ast.FuncLit{
+						Type: &ast.FuncType{},
+						Body: &ast.BlockStmt{},
+					}
+					message = `Routing should be replaced with HTTP`
+				)
 				for _, arg := range n.Args {
 					cal, ok := arg.(*ast.CallExpr)
 					if !ok {
@@ -124,6 +127,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 							replaced := replaceWildcard(b.Value)
 							if replaced != b.Value {
 								b.Value = replaced
+								message += " and colons in HTTP routing DSLs should be replaced with curly braces"
 							}
 						}
 					}
@@ -144,7 +148,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					return
 				}
 				pass.Report(analysis.Diagnostic{
-					Pos: n.Pos(), Message: `Routing should be replaced with HTTP and colons in HTTP routing DSLs should be replaced with curly braces`,
+					Pos: n.Pos(), Message: message,
 					SuggestedFixes: []analysis.SuggestedFix{
 						{Message: "Replace", TextEdits: []analysis.TextEdit{{Pos: n.Pos(), End: n.End(), NewText: buf.Bytes()}}},
 					},

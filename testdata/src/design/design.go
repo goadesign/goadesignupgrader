@@ -21,4 +21,8 @@ var _ = Resource("user", func() { // want `Resource should be replaced with Serv
 		})
 		Metadata("swagger:summary", "Show users") // want `Metadata should be replaced with Meta`
 	})
+	Action("list", func() { // want `Action should be replaced with Method`
+		Routing(GET("/"))                     // want `Routing should be replaced with HTTP`
+		Response(OK, CollectionOf(UserMedia)) // want `OK should be replaced with StatusOK`
+	})
 })
