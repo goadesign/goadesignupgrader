@@ -261,11 +261,7 @@ func analyzeAttribute(pass *analysis.Pass, expr *ast.CallExpr) bool {
 		}
 		switch ident.Name {
 		case "DateTime":
-			pass.Report(analysis.Diagnostic{
-				Pos: ident.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`,
-			})
-			ident.Name = "String"
-			changed = true
+			changed = analyzeDateTime(pass, ident) || changed
 			e, ok := expr.Args[len(expr.Args)-1].(*ast.FuncLit)
 			if !ok {
 				e = &ast.FuncLit{
@@ -301,7 +297,7 @@ func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident) 
 
 func analyzeDateTime(pass *analysis.Pass, ident *ast.Ident) bool {
 	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `DateTime should be replaced with String`,
+		Pos: ident.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`,
 	})
 	ident.Name = "String"
 	return true
