@@ -47,3 +47,7 @@ func Status(status int) {
 func CollectionOf(v interface{}, paramAndDSL ...interface{}) interface{} {
 	return nil
 }
+
+func Type(name string, apidsl func()) interface{} {
+	return nil
+}
