@@ -303,25 +303,6 @@ func analyzeDateTime(pass *analysis.Pass, ident *ast.Ident) bool {
 	return true
 }
 
-func analyzeHTTPRoutingDSL(pass *analysis.Pass, expr *ast.CallExpr) bool {
-	var changed bool
-	for _, e := range expr.Args {
-		e, ok := e.(*ast.BasicLit)
-		if !ok {
-			continue
-		}
-		replaced := replaceWildcard(e.Value)
-		if replaced != e.Value {
-			pass.Report(analysis.Diagnostic{
-				Pos: e.Pos(), Message: `colons in HTTP routing DSLs should be replaced with curly braces`,
-			})
-			e.Value = replaced
-			changed = true
-		}
-	}
-	return changed
-}
-
 func analyzeGenericDSL(pass *analysis.Pass, node ast.Node) bool {
 	var changed bool
 	ast.Inspect(node, func(n ast.Node) bool {
@@ -349,6 +330,25 @@ func analyzeGenericDSL(pass *analysis.Pass, node ast.Node) bool {
 		}
 		return true
 	})
+	return changed
+}
+
+func analyzeHTTPRoutingDSL(pass *analysis.Pass, expr *ast.CallExpr) bool {
+	var changed bool
+	for _, e := range expr.Args {
+		e, ok := e.(*ast.BasicLit)
+		if !ok {
+			continue
+		}
+		replaced := replaceWildcard(e.Value)
+		if replaced != e.Value {
+			pass.Report(analysis.Diagnostic{
+				Pos: e.Pos(), Message: `colons in HTTP routing DSLs should be replaced with curly braces`,
+			})
+			e.Value = replaced
+			changed = true
+		}
+	}
 	return changed
 }
 
