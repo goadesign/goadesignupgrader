@@ -8,6 +8,9 @@ import ( // want `\Aimport declarations should be fixed\z`
 
 var _ = API("api", func() { // want `\Avariable declarations should be fixed\z`
 	BasePath("/:version") // want `\ABasePath should be replaced with Path and move it into HTTP\z`
+	Params(func() {       // want `\AParams should be wrapped by HTTP\z`
+		Param("version")
+	})
 })
 
 var User = Type("user", func() { // want `\Avariable declarations should be fixed\z`
@@ -21,6 +24,9 @@ var UserMedia = MediaType("application/vnd.user+json", func() { // want `\Avaria
 })
 
 var _ = Resource("user", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`
+	Params(func() { // want `\AParams should be wrapped by HTTP\z`
+		Param("token")
+	})
 	BasePath("/users")      // want `\ABasePath should be replaced with Path and move it into HTTP\z`
 	Action("show", func() { // want `\AAction should be replaced with Method\z`
 		Routing(GET("/:user_id"))        // want `\ARouting should be replaced with HTTP\z` `\Acolons in HTTP routing DSLs should be replaced with curly braces\z`
@@ -30,7 +36,10 @@ var _ = Resource("user", func() { // want `\Avariable declarations should be fix
 		Metadata("swagger:summary", "Show users") // want `\AMetadata should be replaced with Meta\z`
 	})
 	Action("list", func() { // want `\AAction should be replaced with Method\z`
-		Routing(GET("/"))                     // want `\ARouting should be replaced with HTTP\z`
+		Routing(GET("/")) // want `\ARouting should be replaced with HTTP\z`
+		Params(func() {   // want `\AParams should be wrapped by HTTP\z`
+			Param("page")
+		})
 		Response(OK, CollectionOf(UserMedia)) // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
 	})
 })

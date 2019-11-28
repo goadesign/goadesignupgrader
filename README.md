@@ -29,6 +29,7 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 * `PATCH`
 * `POST`
 * `PUT`
+* `Params`
 * `Resource`
 * `Response`
 * `Routing`

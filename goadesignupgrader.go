@@ -73,6 +73,8 @@ func analyzeAPI(pass *analysis.Pass, expr *ast.CallExpr) bool {
 			switch ident.Name {
 			case "BasePath":
 				changed = analyzeBasePath(pass, stmt, ident, &listAPIHTTP) || changed
+			case "Params":
+				changed = analyzeParams(pass, stmt, &listAPIHTTP) || changed
 			default:
 				listAPI = append(listAPI, stmt)
 			}
@@ -126,6 +128,8 @@ func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, 
 				continue
 			}
 			switch ident.Name {
+			case "Params":
+				analyzeParams(pass, stmt, &listActionHTTP)
 			case "Response":
 				analyzeResponse(pass, stmt, expr, &listActionHTTP)
 			case "Routing":
@@ -376,6 +380,12 @@ func analyzeMetadata(pass *analysis.Pass, ident *ast.Ident) bool {
 	return true
 }
 
+func analyzeParams(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Params should be wrapped by HTTP`})
+	*parent = append(*parent, stmt)
+	return true
+}
+
 func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Resource should be replaced with Service`})
 	ident.Name = "Service"
@@ -407,6 +417,8 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 				analyzeAction(pass, stmt, expr, ident, &listResource)
 			case "BasePath":
 				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
+			case "Params":
+				analyzeParams(pass, stmt, &listResourceHTTP)
 			case "Response":
 				analyzeResponse(pass, stmt, expr, &listResourceHTTP)
 			default:

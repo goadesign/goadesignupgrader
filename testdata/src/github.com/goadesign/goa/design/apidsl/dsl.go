@@ -55,3 +55,11 @@ func Type(name string, apidsl func()) interface{} {
 func API(name string, dsl func()) interface{} {
 	return nil
 }
+
+func Param(name string, args ...interface{}) {
+	return
+}
+
+func Params(dsl func()) {
+	return
+}
