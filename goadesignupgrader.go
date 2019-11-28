@@ -249,6 +249,13 @@ func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, 
 	return true
 }
 
+func analyzeCanonicalActionName(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `CanonicalActionName should be replaced with CanonicalMethod and wrapped by HTTP`})
+	ident.Name = "CanonicalMethod"
+	*parent = append(*parent, stmt)
+	return true
+}
+
 func analyzeDateTime(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`})
 	ident.Name = "String"
@@ -416,6 +423,8 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 				analyzeAction(pass, stmt, expr, ident, &listResource)
 			case "BasePath":
 				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
+			case "CanonicalActionName":
+				analyzeCanonicalActionName(pass, stmt, ident, &listResourceHTTP)
 			case "Params":
 				analyzeParams(pass, stmt, &listResourceHTTP)
 			case "Response":

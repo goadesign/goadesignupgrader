@@ -63,3 +63,7 @@ func Param(name string, args ...interface{}) {
 func Params(dsl func()) {
 	return
 }
+
+func CanonicalActionName(a string) {
+	return
+}

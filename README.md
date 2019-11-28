@@ -19,6 +19,7 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 * `Action`
 * `BasePath`
 * `CONNECT`
+* `CanonicalActionName`
 * `DELETE`
 * `GET`
 * `HEAD`
