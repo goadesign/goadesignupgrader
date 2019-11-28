@@ -6,6 +6,10 @@ import ( // want `\Aimport declarations should be fixed\z`
 	"net/http"
 )
 
+var _ = API("api", func() { // want `\Avariable declarations should be fixed\z`
+	BasePath("/:version") // want `\ABasePath should be replaced with Path and move it into HTTP\z`
+})
+
 var User = Type("user", func() { // want `\Avariable declarations should be fixed\z`
 	Attribute("permissions", HashOf(String, Boolean)) // want `\AHashOf should be replaced with MapOf\z`
 })

@@ -45,6 +45,60 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
+func analyzeAPI(pass *analysis.Pass, expr *ast.CallExpr) bool {
+	var changed bool
+	for _, expr := range expr.Args {
+		expr, ok := expr.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		analyzeGenericDSL(pass, expr)
+		var (
+			listAPI     []ast.Stmt
+			listAPIHTTP []ast.Stmt
+		)
+		for _, stmt := range expr.Body.List {
+			stmt, ok := stmt.(*ast.ExprStmt)
+			if !ok {
+				continue
+			}
+			expr, ok := stmt.X.(*ast.CallExpr)
+			if !ok {
+				continue
+			}
+			ident, ok := expr.Fun.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			switch ident.Name {
+			case "BasePath":
+				changed = analyzeBasePath(pass, stmt, ident, &listAPIHTTP) || changed
+			default:
+				listAPI = append(listAPI, stmt)
+			}
+		}
+		if len(listAPIHTTP) > 0 {
+			listAPI = append(listAPI, &ast.ExprStmt{
+				X: &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "HTTP",
+					},
+					Args: []ast.Expr{
+						&ast.FuncLit{
+							Type: &ast.FuncType{},
+							Body: &ast.BlockStmt{
+								List: listAPIHTTP,
+							},
+						},
+					},
+				},
+			})
+			expr.Body.List = listAPI
+		}
+	}
+	return changed
+}
+
 func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, ident *ast.Ident, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Action should be replaced with Method`})
 	ident.Name = "Method"
@@ -149,6 +203,8 @@ func analyzeAndFixVariables(pass *analysis.Pass, decl *ast.GenDecl) {
 				continue
 			}
 			switch ident.Name {
+			case "API":
+				changed = analyzeAPI(pass, expr) || changed
 			case "MediaType":
 				changed = analyzeMediaType(pass, expr, ident) || changed
 			case "Resource":

@@ -51,3 +51,7 @@ func CollectionOf(v interface{}, paramAndDSL ...interface{}) interface{} {
 func Type(name string, apidsl func()) interface{} {
 	return nil
 }
+
+func API(name string, dsl func()) interface{} {
+	return nil
+}
