@@ -30,226 +30,142 @@ var regexpWildcard = regexp.MustCompile(`/:([a-zA-Z0-9_]+)`)
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		for _, decl := range file.Decls {
-			var changed bool
 			switch decl := decl.(type) {
 			case *ast.GenDecl:
 				switch decl.Tok {
 				case token.IMPORT:
-					var specs []ast.Spec
-					for _, spec := range decl.Specs {
-						spec, ok := spec.(*ast.ImportSpec)
-						if !ok {
-							continue
-						}
-						path, err := strconv.Unquote(spec.Path.Value)
-						if err != nil {
-							continue
-						}
-						switch path {
-						case "github.com/goadesign/goa/design":
-							pass.Report(analysis.Diagnostic{
-								Pos: spec.Pos(), Message: `"github.com/goadesign/goa/design" should be removed`,
-							})
-							path = ""
-						case "github.com/goadesign/goa/design/apidsl":
-							pass.Report(analysis.Diagnostic{
-								Pos: spec.Pos(), Message: `"github.com/goadesign/goa/design/apidsl" should be replaced with "goa.design/goa/v3/dsl"`,
-							})
-							path = "goa.design/goa/v3/dsl"
-						}
-						if path := strconv.Quote(path); path != spec.Path.Value {
-							spec.Path.Value = path
-							changed = true
-						}
-						if path != "" {
-							specs = append(specs, spec)
-						}
-					}
-					if changed {
-						decl.Specs = specs
-						var b []byte
-						if len(specs) != 0 {
-							b = formatNode(pass.Fset, decl)
-						}
-						pass.Report(analysis.Diagnostic{
-							Pos: decl.Pos(), Message: `import declarations should be fixed`,
-							SuggestedFixes: []analysis.SuggestedFix{{Message: "Fix", TextEdits: []analysis.TextEdit{
-								{Pos: decl.Pos(), End: decl.End(), NewText: b},
-							}}},
-						})
-					}
+					analyzeAndFixImports(pass, decl)
 				case token.VAR:
-					for _, spec := range decl.Specs {
-						spec, ok := spec.(*ast.ValueSpec)
-						if !ok {
-							continue
-						}
-						for _, expr := range spec.Values {
-							expr, ok := expr.(*ast.CallExpr)
-							if !ok {
-								continue
-							}
-							ident, ok := expr.Fun.(*ast.Ident)
-							if !ok {
-								continue
-							}
-							switch ident.Name {
-							case "Resource":
-								pass.Report(analysis.Diagnostic{
-									Pos: ident.Pos(), Message: `Resource should be replaced with Service`,
-								})
-								ident.Name = "Service"
-								changed = true
-								for _, expr := range expr.Args {
-									expr, ok := expr.(*ast.FuncLit)
-									if !ok {
-										continue
-									}
-									changed = analyzeGenericDSL(pass, expr) || changed
-									var (
-										listResource     []ast.Stmt
-										listResourceHTTP []ast.Stmt
-									)
-									for _, stmt := range expr.Body.List {
-										stmt, ok := stmt.(*ast.ExprStmt)
-										if !ok {
-											continue
-										}
-										expr, ok := stmt.X.(*ast.CallExpr)
-										if !ok {
-											continue
-										}
-										ident, ok := expr.Fun.(*ast.Ident)
-										if !ok {
-											continue
-										}
-										switch ident.Name {
-										case "Action":
-											pass.Report(analysis.Diagnostic{
-												Pos: ident.Pos(), Message: `Action should be replaced with Method`,
-											})
-											ident.Name = "Method"
-											changed = true
-											listResource = append(listResource, stmt)
-											for _, expr := range expr.Args {
-												expr, ok := expr.(*ast.FuncLit)
-												if !ok {
-													continue
-												}
-												var (
-													listAction     []ast.Stmt
-													listActionHTTP []ast.Stmt
-												)
-												for _, stmt := range expr.Body.List {
-													stmt, ok := stmt.(*ast.ExprStmt)
-													if !ok {
-														continue
-													}
-													expr, ok := stmt.X.(*ast.CallExpr)
-													if !ok {
-														continue
-													}
-													ident, ok := expr.Fun.(*ast.Ident)
-													if !ok {
-														continue
-													}
-													switch ident.Name {
-													case "Routing":
-														changed = analyzeRouting(pass, expr) || changed
-														listActionHTTP = append(listActionHTTP, stmt)
-													case "Response":
-														changed = analyzeResponse(pass, stmt, expr) || changed
-														listActionHTTP = append(listActionHTTP, stmt)
-													default:
-														listAction = append(listAction, stmt)
-													}
-												}
-												if len(listActionHTTP) > 0 {
-													listAction = append(listAction, &ast.ExprStmt{
-														X: &ast.CallExpr{
-															Fun: &ast.Ident{
-																Name: "HTTP",
-															},
-															Args: []ast.Expr{
-																&ast.FuncLit{
-																	Type: &ast.FuncType{},
-																	Body: &ast.BlockStmt{
-																		List: listActionHTTP,
-																	},
-																},
-															},
-														},
-													})
-													expr.Body.List = listAction
-												}
-											}
-										case "BasePath":
-											changed = analyzeBasePath(pass, stmt, ident) || changed
-											listResourceHTTP = append(listResourceHTTP, stmt)
-										case "Response":
-											changed = analyzeResponse(pass, stmt, expr) || changed
-											listResourceHTTP = append(listResourceHTTP, stmt)
-										default:
-											listResource = append(listResource, stmt)
-										}
-									}
-									if len(listResourceHTTP) > 0 {
-										listResource = append(listResource, &ast.ExprStmt{
-											X: &ast.CallExpr{
-												Fun: &ast.Ident{
-													Name: "HTTP",
-												},
-												Args: []ast.Expr{
-													&ast.FuncLit{
-														Type: &ast.FuncType{},
-														Body: &ast.BlockStmt{
-															List: listResourceHTTP,
-														},
-													},
-												},
-											},
-										})
-										expr.Body.List = listResource
-									}
-								}
-							case "MediaType":
-								pass.Report(analysis.Diagnostic{
-									Pos: ident.Pos(), Message: `MediaType should be replaced with ResultType`,
-								})
-								ident.Name = "ResultType"
-								changed = true
-								for _, expr := range expr.Args {
-									expr, ok := expr.(*ast.FuncLit)
-									if !ok {
-										continue
-									}
-									changed = analyzeGenericDSL(pass, expr) || changed
-								}
-							case "Type":
-								for _, expr := range expr.Args {
-									expr, ok := expr.(*ast.FuncLit)
-									if !ok {
-										continue
-									}
-									changed = analyzeGenericDSL(pass, expr) || changed
-								}
-							}
-						}
-					}
-					if changed {
-						pass.Report(analysis.Diagnostic{
-							Pos: decl.Pos(), Message: `variable declarations should be fixed`,
-							SuggestedFixes: []analysis.SuggestedFix{{Message: "Fix", TextEdits: []analysis.TextEdit{
-								{Pos: decl.Pos(), End: decl.End(), NewText: formatNode(pass.Fset, decl)},
-							}}},
-						})
-					}
+					analyzeAndFixVariables(pass, decl)
 				}
 			}
 		}
 	}
 
 	return nil, nil
+}
+
+func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, ident *ast.Ident, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Action should be replaced with Method`})
+	ident.Name = "Method"
+	*parent = append(*parent, stmt)
+	for _, expr := range expr.Args {
+		expr, ok := expr.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		var (
+			listAction     []ast.Stmt
+			listActionHTTP []ast.Stmt
+		)
+		for _, stmt := range expr.Body.List {
+			stmt, ok := stmt.(*ast.ExprStmt)
+			if !ok {
+				continue
+			}
+			expr, ok := stmt.X.(*ast.CallExpr)
+			if !ok {
+				continue
+			}
+			ident, ok := expr.Fun.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			switch ident.Name {
+			case "Routing":
+				analyzeRouting(pass, expr, &listActionHTTP)
+			case "Response":
+				analyzeResponse(pass, stmt, expr, &listActionHTTP)
+			default:
+				listAction = append(listAction, stmt)
+			}
+		}
+		if len(listActionHTTP) > 0 {
+			listAction = append(listAction, &ast.ExprStmt{
+				X: &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "HTTP",
+					},
+					Args: []ast.Expr{
+						&ast.FuncLit{
+							Type: &ast.FuncType{},
+							Body: &ast.BlockStmt{
+								List: listActionHTTP,
+							},
+						},
+					},
+				},
+			})
+			expr.Body.List = listAction
+		}
+	}
+	return true
+}
+
+func analyzeAndFixImports(pass *analysis.Pass, decl *ast.GenDecl) {
+	var changed bool
+	var specs []ast.Spec
+	for _, spec := range decl.Specs {
+		spec, ok := spec.(*ast.ImportSpec)
+		if !ok {
+			continue
+		}
+		if analyzeImport(pass, spec) {
+			changed = true
+		}
+		if spec.Path.Value != `""` {
+			specs = append(specs, spec)
+		}
+	}
+	if changed {
+		decl.Specs = specs
+		var b []byte
+		if len(specs) != 0 {
+			b = formatNode(pass.Fset, decl)
+		}
+		pass.Report(analysis.Diagnostic{
+			Pos: decl.Pos(), Message: `import declarations should be fixed`,
+			SuggestedFixes: []analysis.SuggestedFix{{Message: "Fix", TextEdits: []analysis.TextEdit{
+				{Pos: decl.Pos(), End: decl.End(), NewText: b},
+			}}},
+		})
+	}
+}
+
+func analyzeAndFixVariables(pass *analysis.Pass, decl *ast.GenDecl) {
+	var changed bool
+	for _, spec := range decl.Specs {
+		spec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+		for _, expr := range spec.Values {
+			expr, ok := expr.(*ast.CallExpr)
+			if !ok {
+				continue
+			}
+			ident, ok := expr.Fun.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			switch ident.Name {
+			case "Resource":
+				changed = analyzeResource(pass, expr, ident) || changed
+			case "MediaType":
+				changed = analyzeMediaType(pass, expr, ident) || changed
+			case "Type":
+				changed = analyzeType(pass, expr) || changed
+			}
+		}
+	}
+	if changed {
+		pass.Report(analysis.Diagnostic{
+			Pos: decl.Pos(), Message: `variable declarations should be fixed`,
+			SuggestedFixes: []analysis.SuggestedFix{{Message: "Fix", TextEdits: []analysis.TextEdit{
+				{Pos: decl.Pos(), End: decl.End(), NewText: formatNode(pass.Fset, decl)},
+			}}},
+		})
+	}
 }
 
 func analyzeAttribute(pass *analysis.Pass, expr *ast.CallExpr) bool {
@@ -261,45 +177,42 @@ func analyzeAttribute(pass *analysis.Pass, expr *ast.CallExpr) bool {
 		}
 		switch ident.Name {
 		case "DateTime":
-			changed = analyzeDateTime(pass, ident) || changed
-			e, ok := expr.Args[len(expr.Args)-1].(*ast.FuncLit)
-			if !ok {
-				e = &ast.FuncLit{
-					Type: &ast.FuncType{},
-					Body: &ast.BlockStmt{},
-				}
-				expr.Args = append(expr.Args, e)
-			}
-			e.Body.List = append(e.Body.List, &ast.ExprStmt{
-				X: &ast.CallExpr{
-					Fun: &ast.Ident{
-						Name: "Format",
-					},
-					Args: []ast.Expr{
-						&ast.Ident{
-							Name: "FormatDateTime",
-						},
-					},
-				},
-			})
+			changed = analyzeDateTime(pass, expr, ident) || changed
 		}
 	}
 	return changed
 }
 
-func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `BasePath should be replaced with Path and move it into HTTP`,
-	})
+func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `BasePath should be replaced with Path and move it into HTTP`})
 	ident.Name = "Path"
+	*parent = append(*parent, stmt)
 	return true
 }
 
-func analyzeDateTime(pass *analysis.Pass, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`,
-	})
+func analyzeDateTime(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `DateTime should be replaced with String + Format(FormatDateTime)`})
 	ident.Name = "String"
+	e, ok := expr.Args[len(expr.Args)-1].(*ast.FuncLit)
+	if !ok {
+		e = &ast.FuncLit{
+			Type: &ast.FuncType{},
+			Body: &ast.BlockStmt{},
+		}
+		expr.Args = append(expr.Args, e)
+	}
+	e.Body.List = append(e.Body.List, &ast.ExprStmt{
+		X: &ast.CallExpr{
+			Fun: &ast.Ident{
+				Name: "Format",
+			},
+			Args: []ast.Expr{
+				&ast.Ident{
+					Name: "FormatDateTime",
+				},
+			},
+		},
+	})
 	return true
 }
 
@@ -342,9 +255,7 @@ func analyzeHTTPRoutingDSL(pass *analysis.Pass, expr *ast.CallExpr) bool {
 		}
 		replaced := replaceWildcard(e.Value)
 		if replaced != e.Value {
-			pass.Report(analysis.Diagnostic{
-				Pos: e.Pos(), Message: `colons in HTTP routing DSLs should be replaced with curly braces`,
-			})
+			pass.Report(analysis.Diagnostic{Pos: e.Pos(), Message: `colons in HTTP routing DSLs should be replaced with curly braces`})
 			e.Value = replaced
 			changed = true
 		}
@@ -354,41 +265,122 @@ func analyzeHTTPRoutingDSL(pass *analysis.Pass, expr *ast.CallExpr) bool {
 
 func analyzeHTTPStatusConstant(pass *analysis.Pass, ident *ast.Ident) bool {
 	name := "Status" + ident.Name
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: fmt.Sprintf(`%s should be replaced with %s`, ident.Name, name),
-	})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: fmt.Sprintf(`%s should be replaced with %s`, ident.Name, name)})
 	ident.Name = name
 	return true
 }
 
 func analyzeHashOf(pass *analysis.Pass, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `HashOf should be replaced with MapOf`,
-	})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `HashOf should be replaced with MapOf`})
 	ident.Name = "MapOf"
 	return true
 }
 
+func analyzeImport(pass *analysis.Pass, spec *ast.ImportSpec) bool {
+	var changed bool
+	if path, err := strconv.Unquote(spec.Path.Value); err == nil {
+		switch path {
+		case "github.com/goadesign/goa/design":
+			pass.Report(analysis.Diagnostic{Pos: spec.Pos(), Message: `"github.com/goadesign/goa/design" should be removed`})
+			path = ""
+		case "github.com/goadesign/goa/design/apidsl":
+			pass.Report(analysis.Diagnostic{Pos: spec.Pos(), Message: `"github.com/goadesign/goa/design/apidsl" should be replaced with "goa.design/goa/v3/dsl"`})
+			path = "goa.design/goa/v3/dsl"
+		}
+		if path := strconv.Quote(path); spec.Path.Value != path {
+			spec.Path.Value = path
+			changed = true
+		}
+	}
+	return changed
+}
+
 func analyzeInteger(pass *analysis.Pass, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `Integer should be replaced with Int`,
-	})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Integer should be replaced with Int`})
 	ident.Name = "Int"
 	return true
 }
 
+func analyzeMediaType(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `MediaType should be replaced with ResultType`})
+	ident.Name = "ResultType"
+	for _, expr := range expr.Args {
+		expr, ok := expr.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		analyzeGenericDSL(pass, expr)
+	}
+	return true
+}
+
 func analyzeMetadata(pass *analysis.Pass, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `Metadata should be replaced with Meta`,
-	})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Metadata should be replaced with Meta`})
 	ident.Name = "Meta"
 	return true
 }
 
-func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: expr.Pos(), Message: `Response should be wrapped by HTTP`,
-	})
+func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Resource should be replaced with Service`})
+	ident.Name = "Service"
+	for _, expr := range expr.Args {
+		expr, ok := expr.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		analyzeGenericDSL(pass, expr)
+		var (
+			listResource     []ast.Stmt
+			listResourceHTTP []ast.Stmt
+		)
+		for _, stmt := range expr.Body.List {
+			stmt, ok := stmt.(*ast.ExprStmt)
+			if !ok {
+				continue
+			}
+			expr, ok := stmt.X.(*ast.CallExpr)
+			if !ok {
+				continue
+			}
+			ident, ok := expr.Fun.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			switch ident.Name {
+			case "Action":
+				analyzeAction(pass, stmt, expr, ident, &listResource)
+			case "BasePath":
+				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
+			case "Response":
+				analyzeResponse(pass, stmt, expr, &listResourceHTTP)
+			default:
+				listResource = append(listResource, stmt)
+			}
+		}
+		if len(listResourceHTTP) > 0 {
+			listResource = append(listResource, &ast.ExprStmt{
+				X: &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "HTTP",
+					},
+					Args: []ast.Expr{
+						&ast.FuncLit{
+							Type: &ast.FuncType{},
+							Body: &ast.BlockStmt{
+								List: listResourceHTTP,
+							},
+						},
+					},
+				},
+			})
+			expr.Body.List = listResource
+		}
+	}
+	return true
+}
+
+func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `Response should be wrapped by HTTP`})
 	for _, e := range expr.Args {
 		switch t := e.(type) {
 		case *ast.Ident:
@@ -424,14 +416,12 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 			}
 		}
 	}
+	*parent = append(*parent, stmt)
 	return true
 }
 
-func analyzeRouting(pass *analysis.Pass, expr *ast.CallExpr) bool {
-	var changed bool
-	pass.Report(analysis.Diagnostic{
-		Pos: expr.Pos(), Message: `Routing should be replaced with HTTP`,
-	})
+func analyzeRouting(pass *analysis.Pass, expr *ast.CallExpr, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `Routing should be replaced with HTTP`})
 	for _, e := range expr.Args {
 		e, ok := e.(*ast.CallExpr)
 		if !ok {
@@ -443,18 +433,29 @@ func analyzeRouting(pass *analysis.Pass, expr *ast.CallExpr) bool {
 		}
 		switch ident.Name {
 		case "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH":
-			changed = analyzeHTTPRoutingDSL(pass, e) || changed
+			analyzeHTTPRoutingDSL(pass, e)
+			*parent = append(*parent, &ast.ExprStmt{X: e})
 		}
 	}
-	return changed
+	return true
 }
 
 func analyzeStatus(pass *analysis.Pass, ident *ast.Ident) bool {
-	pass.Report(analysis.Diagnostic{
-		Pos: ident.Pos(), Message: `Status should be replaced with Code`,
-	})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Status should be replaced with Code`})
 	ident.Name = "Code"
 	return true
+}
+
+func analyzeType(pass *analysis.Pass, expr *ast.CallExpr) bool {
+	var changed bool
+	for _, expr := range expr.Args {
+		expr, ok := expr.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		changed = analyzeGenericDSL(pass, expr) || changed
+	}
+	return changed
 }
 
 func replaceWildcard(s string) string {
