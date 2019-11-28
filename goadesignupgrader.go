@@ -41,7 +41,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 		}
 	}
-
 	return nil, nil
 }
 
@@ -244,7 +243,7 @@ func analyzeAttribute(pass *analysis.Pass, expr *ast.CallExpr) bool {
 }
 
 func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
-	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `BasePath should be replaced with Path and move it into HTTP`})
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `BasePath should be replaced with Path and wrapped by HTTP`})
 	ident.Name = "Path"
 	*parent = append(*parent, stmt)
 	return true
