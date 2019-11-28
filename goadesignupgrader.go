@@ -23,7 +23,7 @@ var Analyzer = &analysis.Analyzer{
 	},
 }
 
-const Doc = "goadesignupgrader is ..."
+const Doc = "upgrade a design definition for Goa from v1 to v3"
 
 var regexpWildcard = regexp.MustCompile(`/:([a-zA-Z0-9_]+)`)
 
