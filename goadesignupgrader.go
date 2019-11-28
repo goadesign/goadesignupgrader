@@ -72,10 +72,10 @@ func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, 
 				continue
 			}
 			switch ident.Name {
-			case "Routing":
-				analyzeRouting(pass, expr, &listActionHTTP)
 			case "Response":
 				analyzeResponse(pass, stmt, expr, &listActionHTTP)
+			case "Routing":
+				analyzeRouting(pass, expr, &listActionHTTP)
 			default:
 				listAction = append(listAction, stmt)
 			}
@@ -149,10 +149,10 @@ func analyzeAndFixVariables(pass *analysis.Pass, decl *ast.GenDecl) {
 				continue
 			}
 			switch ident.Name {
-			case "Resource":
-				changed = analyzeResource(pass, expr, ident) || changed
 			case "MediaType":
 				changed = analyzeMediaType(pass, expr, ident) || changed
+			case "Resource":
+				changed = analyzeResource(pass, expr, ident) || changed
 			case "Type":
 				changed = analyzeType(pass, expr) || changed
 			}
