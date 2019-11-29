@@ -132,7 +132,7 @@ func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, 
 			case "Params":
 				analyzeParams(pass, stmt, &listActionHTTP)
 			case "Response":
-				analyzeResponse(pass, stmt, expr, &listActionHTTP)
+				analyzeResponse(pass, stmt, expr, &listActionHTTP, &listAction)
 			case "Routing":
 				analyzeRouting(pass, expr, &listActionHTTP)
 			default:
@@ -375,6 +375,17 @@ func analyzeInteger(pass *analysis.Pass, ident *ast.Ident) bool {
 	return true
 }
 
+func analyzeMedia(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt, errorResponse bool) bool {
+	if errorResponse {
+		pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Media for an error response should be removed`})
+	} else {
+		pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Media for a non-error response should be replaced with Result and wrapped by HTTP in the parent`})
+		ident.Name = "Result"
+		*parent = append(*parent, stmt)
+	}
+	return true
+}
+
 func analyzeMediaType(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `MediaType should be replaced with ResultType`})
 	ident.Name = "ResultType"
@@ -438,7 +449,7 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 			case "Params":
 				analyzeParams(pass, stmt, &listResourceHTTP)
 			case "Response":
-				analyzeResponse(pass, stmt, expr, &listResourceHTTP)
+				analyzeResponse(pass, stmt, expr, &listResourceHTTP, &listResource)
 			default:
 				listResource = append(listResource, stmt)
 			}
@@ -465,23 +476,31 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 	return true
 }
 
-func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, parent *[]ast.Stmt) bool {
+func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, parent *[]ast.Stmt, grandparent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `Response should be wrapped by HTTP`})
+	var (
+		errorResponse bool
+		args          []ast.Expr
+	)
 	for _, e := range expr.Args {
 		switch t := e.(type) {
 		case *ast.Ident:
 			switch t.Name {
-			case "Continue", "SwitchingProtocols",
-				"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
-				"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect",
-				"BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
+			case "BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
 				"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
 				"Gone", "LengthRequired", "PreconditionFailed", "RequestEntityTooLarge", "RequestURITooLong",
 				"UnsupportedMediaType", "RequestedRangeNotSatisfiable", "ExpectationFailed", "Teapot", "UnprocessableEntity",
 				"InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "HTTPVersionNotSupported":
+				errorResponse = true
+				fallthrough
+			case "Continue", "SwitchingProtocols",
+				"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
+				"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect":
 				analyzeHTTPStatusConstant(pass, t)
 			}
+			args = append(args, t)
 		case *ast.FuncLit:
+			var list []ast.Stmt
 			for _, s := range t.Body.List {
 				s, ok := s.(*ast.ExprStmt)
 				if !ok {
@@ -496,11 +515,26 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 					continue
 				}
 				switch i.Name {
+				case "Media":
+					analyzeMedia(pass, s, i, grandparent, errorResponse)
 				case "Status":
-					analyzeStatus(pass, i)
+					analyzeStatus(pass, s, i, &list)
+				default:
+					list = append(list, s)
 				}
 			}
+			if len(list) != len(t.Body.List) {
+				t.Body.List = list
+			}
+			if len(t.Body.List) > 0 {
+				args = append(args, t)
+			}
+		default:
+			args = append(args, t)
 		}
+	}
+	if len(expr.Args) != len(args) {
+		expr.Args = args
 	}
 	*parent = append(*parent, stmt)
 	return true
@@ -526,9 +560,10 @@ func analyzeRouting(pass *analysis.Pass, expr *ast.CallExpr, parent *[]ast.Stmt)
 	return true
 }
 
-func analyzeStatus(pass *analysis.Pass, ident *ast.Ident) bool {
+func analyzeStatus(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `Status should be replaced with Code`})
 	ident.Name = "Code"
+	*parent = append(*parent, stmt)
 	return true
 }
 

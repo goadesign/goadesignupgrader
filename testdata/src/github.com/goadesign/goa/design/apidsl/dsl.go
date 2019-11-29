@@ -83,3 +83,7 @@ func POST(path string, dsl ...func()) interface{} {
 func Payload(p interface{}, dsls ...func()) {
 	return
 }
+
+func Media(val interface{}, viewName ...string) {
+	return
+}

@@ -37,8 +37,13 @@ var _ = Resource("user", func() { // want `\Avariable declarations should be fix
 		Headers(func() {          // want `\AHeaders should be wrapped by HTTP\z`
 			Header("Link")
 		})
-		Response(OK, UserMedia, func() { // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
+		Response(OK, func() { // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
+			Media(UserMedia)      // want `\AMedia for a non-error response should be replaced with Result and wrapped by HTTP in the parent\z`
 			Status(http.StatusOK) // want `\AStatus should be replaced with Code\z`
+		})
+		Response(NotFound, func() { // want `\AResponse should be wrapped by HTTP\z` `\ANotFound should be replaced with StatusNotFound\z`
+			Media(ErrorMedia)           // want `\AMedia for an error response should be removed\z`
+			Status(http.StatusNotFound) // want `\AStatus should be replaced with Code\z`
 		})
 		Metadata("swagger:summary", "Show users") // want `\AMetadata should be replaced with Meta\z`
 	})
