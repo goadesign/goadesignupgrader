@@ -26,11 +26,17 @@ var UserMedia = MediaType("application/vnd.user+json", func() { // want `\Avaria
 var _ = Resource("user", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`
 	BasePath("/users")          // want `\ABasePath should be replaced with Path and wrapped by HTTP\z`
 	CanonicalActionName("show") // want `\ACanonicalActionName should be replaced with CanonicalMethod and wrapped by HTTP\z`
-	Params(func() {             // want `\AParams should be wrapped by HTTP\z`
+	Headers(func() {            // want `\AHeaders should be wrapped by HTTP\z`
+		Header("Time-Zone")
+	})
+	Params(func() { // want `\AParams should be wrapped by HTTP\z`
 		Param("token")
 	})
 	Action("show", func() { // want `\AAction should be replaced with Method\z`
-		Routing(GET("/:user_id"))        // want `\ARouting should be replaced with HTTP\z` `\Acolons in HTTP routing DSLs should be replaced with curly braces\z`
+		Routing(GET("/:user_id")) // want `\ARouting should be replaced with HTTP\z` `\Acolons in HTTP routing DSLs should be replaced with curly braces\z`
+		Headers(func() {          // want `\AHeaders should be wrapped by HTTP\z`
+			Header("Link")
+		})
 		Response(OK, UserMedia, func() { // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
 			Status(http.StatusOK) // want `\AStatus should be replaced with Code\z`
 		})
@@ -42,5 +48,14 @@ var _ = Resource("user", func() { // want `\Avariable declarations should be fix
 			Param("page")
 		})
 		Response(OK, CollectionOf(UserMedia)) // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
+	})
+	Action("create", func() { // want `\AAction should be replaced with Method\z`
+		Routing(POST("/")) // want `\ARouting should be replaced with HTTP\z`
+		Payload(User)
+		Response(Created, UserMedia, func() { // want `\AResponse should be wrapped by HTTP\z` `\ACreated should be replaced with StatusCreated\z`
+			Headers(func() { // No need to fix Header in Response.
+				Header("Location")
+			})
+		})
 	})
 })

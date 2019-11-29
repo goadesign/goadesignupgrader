@@ -24,6 +24,7 @@ A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa
 * `GET`
 * `HEAD`
 * `HashOf`
+* `Headers`
 * `MediaType`
 * `Metadata`
 * `OPTIONS`

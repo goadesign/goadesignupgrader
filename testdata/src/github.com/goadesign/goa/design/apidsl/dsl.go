@@ -67,3 +67,19 @@ func Params(dsl func()) {
 func CanonicalActionName(a string) {
 	return
 }
+
+func Header(name string, args ...interface{}) {
+	return
+}
+
+func Headers(params ...interface{}) {
+	return
+}
+
+func POST(path string, dsl ...func()) interface{} {
+	return nil
+}
+
+func Payload(p interface{}, dsls ...func()) {
+	return
+}

@@ -127,6 +127,8 @@ func analyzeAction(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, 
 				continue
 			}
 			switch ident.Name {
+			case "Headers":
+				analyzeHeaders(pass, stmt, &listActionHTTP)
 			case "Params":
 				analyzeParams(pass, stmt, &listActionHTTP)
 			case "Response":
@@ -342,6 +344,12 @@ func analyzeHashOf(pass *analysis.Pass, ident *ast.Ident) bool {
 	return true
 }
 
+func analyzeHeaders(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Headers should be wrapped by HTTP`})
+	*parent = append(*parent, stmt)
+	return true
+}
+
 func analyzeImport(pass *analysis.Pass, spec *ast.ImportSpec) bool {
 	var changed bool
 	if path, err := strconv.Unquote(spec.Path.Value); err == nil {
@@ -425,6 +433,8 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
 			case "CanonicalActionName":
 				analyzeCanonicalActionName(pass, stmt, ident, &listResourceHTTP)
+			case "Headers":
+				analyzeHeaders(pass, stmt, &listResourceHTTP)
 			case "Params":
 				analyzeParams(pass, stmt, &listResourceHTTP)
 			case "Response":

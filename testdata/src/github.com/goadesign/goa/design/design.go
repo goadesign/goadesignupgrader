@@ -1,7 +1,8 @@
 package design
 
 const (
-	OK = "OK"
+	OK      = "OK"
+	Created = "Created"
 
 	Boolean  = "Boolean"
 	Integer  = "Integer"
