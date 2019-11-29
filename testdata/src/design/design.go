@@ -24,12 +24,12 @@ var UserMedia = MediaType("application/vnd.user+json", func() { // want `\Avaria
 })
 
 var _ = Resource("user", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`
-	Params(func() { // want `\AParams should be wrapped by HTTP\z`
-		Param("token")
-	})
 	BasePath("/users")          // want `\ABasePath should be replaced with Path and wrapped by HTTP\z`
 	CanonicalActionName("show") // want `\ACanonicalActionName should be replaced with CanonicalMethod and wrapped by HTTP\z`
-	Action("show", func() {     // want `\AAction should be replaced with Method\z`
+	Params(func() {             // want `\AParams should be wrapped by HTTP\z`
+		Param("token")
+	})
+	Action("show", func() { // want `\AAction should be replaced with Method\z`
 		Routing(GET("/:user_id"))        // want `\ARouting should be replaced with HTTP\z` `\Acolons in HTTP routing DSLs should be replaced with curly braces\z`
 		Response(OK, UserMedia, func() { // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
 			Status(http.StatusOK) // want `\AStatus should be replaced with Code\z`
