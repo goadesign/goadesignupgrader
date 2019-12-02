@@ -9,6 +9,7 @@ import ( // want `\Aimport declarations should be fixed\z`
 var _ = API("api", func() { // want `\Avariable declarations should be fixed\z`
 	BasePath("/:version")                           // want `\ABasePath should be replaced with Path and wrapped by HTTP\z`
 	Consumes("application/json", "application/xml") // want `\AConsumes should be wrapped by HTTP\z`
+	Produces("application/json", "application/xml") // want `\AProduces should be wrapped by HTTP\z`
 	Params(func() {                                 // want `\AParams should be wrapped by HTTP\z`
 		Param("version")
 	})

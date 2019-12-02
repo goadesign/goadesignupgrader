@@ -91,3 +91,7 @@ func Media(val interface{}, viewName ...string) {
 func Consumes(args ...interface{}) {
 	return
 }
+
+func Produces(args ...interface{}) {
+	return
+}

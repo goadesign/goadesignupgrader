@@ -76,6 +76,8 @@ func analyzeAPI(pass *analysis.Pass, expr *ast.CallExpr) bool {
 				changed = analyzeConsumes(pass, stmt, &listAPIHTTP) || changed
 			case "Params":
 				changed = analyzeParams(pass, stmt, &listAPIHTTP) || changed
+			case "Produces":
+				changed = analyzeProduces(pass, stmt, &listAPIHTTP) || changed
 			default:
 				listAPI = append(listAPI, stmt)
 			}
@@ -415,6 +417,12 @@ func analyzeMetadata(pass *analysis.Pass, ident *ast.Ident) bool {
 
 func analyzeParams(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Params should be wrapped by HTTP`})
+	*parent = append(*parent, stmt)
+	return true
+}
+
+func analyzeProduces(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Produces should be wrapped by HTTP`})
 	*parent = append(*parent, stmt)
 	return true
 }

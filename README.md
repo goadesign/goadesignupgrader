@@ -58,6 +58,7 @@ $ goadesignupgrader -fix [design package] | gofmt -s -w
 * `POST`
 * `PUT`
 * `Params`
+* `Produces`
 * `Resource`
 * `Response`
 * `Routing`
