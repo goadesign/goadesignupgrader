@@ -486,6 +486,9 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 		switch t := e.(type) {
 		case *ast.Ident:
 			switch t.Name {
+			case "ErrorMedia":
+				pass.Report(analysis.Diagnostic{Pos: t.Pos(), Message: `ErrorMedia should be removed`})
+				continue
 			case "BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
 				"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
 				"Gone", "LengthRequired", "PreconditionFailed", "RequestEntityTooLarge", "RequestURITooLong",

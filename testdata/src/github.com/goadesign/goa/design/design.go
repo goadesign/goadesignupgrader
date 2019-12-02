@@ -1,9 +1,10 @@
 package design
 
 const (
-	OK       = "OK"
-	Created  = "Created"
-	NotFound = "NotFound"
+	OK         = "OK"
+	Created    = "Created"
+	BadRequest = "BadRequest"
+	NotFound   = "NotFound"
 
 	Boolean  = "Boolean"
 	Integer  = "Integer"

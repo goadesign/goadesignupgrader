@@ -53,6 +53,7 @@ var _ = Resource("user", func() { // want `\Avariable declarations should be fix
 			Param("page")
 		})
 		Response(OK, CollectionOf(UserMedia)) // want `\AResponse should be wrapped by HTTP\z` `\AOK should be replaced with StatusOK\z`
+		Response(BadRequest, ErrorMedia)      // want `\AResponse should be wrapped by HTTP\z` `\ABadRequest should be replaced with StatusBadRequest\z` `\AErrorMedia should be removed\z`
 	})
 	Action("create", func() { // want `\AAction should be replaced with Method\z`
 		Routing(POST("/")) // want `\ARouting should be replaced with HTTP\z`
