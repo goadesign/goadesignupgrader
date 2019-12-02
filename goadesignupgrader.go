@@ -72,6 +72,8 @@ func analyzeAPI(pass *analysis.Pass, expr *ast.CallExpr) bool {
 			switch ident.Name {
 			case "BasePath":
 				changed = analyzeBasePath(pass, stmt, ident, &listAPIHTTP) || changed
+			case "Consumes":
+				changed = analyzeConsumes(pass, stmt, &listAPIHTTP) || changed
 			case "Params":
 				changed = analyzeParams(pass, stmt, &listAPIHTTP) || changed
 			default:
@@ -254,6 +256,12 @@ func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, 
 func analyzeCanonicalActionName(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `CanonicalActionName should be replaced with CanonicalMethod and wrapped by HTTP`})
 	ident.Name = "CanonicalMethod"
+	*parent = append(*parent, stmt)
+	return true
+}
+
+func analyzeConsumes(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Consumes should be wrapped by HTTP`})
 	*parent = append(*parent, stmt)
 	return true
 }

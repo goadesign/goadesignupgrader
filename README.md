@@ -44,6 +44,7 @@ $ goadesignupgrader -fix [design package] | gofmt -s -w
 * `BasePath`
 * `CONNECT`
 * `CanonicalActionName`
+* `Consumes`
 * `DELETE`
 * `GET`
 * `HEAD`

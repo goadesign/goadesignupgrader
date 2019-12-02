@@ -87,3 +87,7 @@ func Payload(p interface{}, dsls ...func()) {
 func Media(val interface{}, viewName ...string) {
 	return
 }
+
+func Consumes(args ...interface{}) {
+	return
+}
