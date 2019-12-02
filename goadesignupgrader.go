@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/iancoleman/strcase"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 )
@@ -511,6 +512,23 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 				"UnsupportedMediaType", "RequestedRangeNotSatisfiable", "ExpectationFailed", "Teapot", "UnprocessableEntity",
 				"InternalServerError", "NotImplemented", "BadGateway", "ServiceUnavailable", "GatewayTimeout", "HTTPVersionNotSupported":
 				errorResponse = true
+				errorName := fmt.Sprintf("%q", strcase.ToSnake(t.Name))
+				*grandparent = append(*grandparent, &ast.ExprStmt{
+					X: &ast.CallExpr{
+						Fun: &ast.Ident{
+							Name: "Error",
+						},
+						Args: []ast.Expr{
+							&ast.BasicLit{
+								Kind:  token.STRING,
+								Value: errorName,
+							},
+						},
+					},
+				})
+				args = append(args, &ast.Ident{
+					Name: errorName,
+				})
 				fallthrough
 			case "Continue", "SwitchingProtocols",
 				"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
