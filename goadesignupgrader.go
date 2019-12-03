@@ -174,9 +174,7 @@ func analyzeAndFixImports(pass *analysis.Pass, decl *ast.GenDecl) {
 		if !ok {
 			continue
 		}
-		if analyzeImport(pass, spec) {
-			changed = true
-		}
+		changed = analyzeImport(pass, spec) || changed
 		if spec.Path.Value != `""` {
 			specs = append(specs, spec)
 		}
