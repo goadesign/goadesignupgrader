@@ -95,3 +95,19 @@ func Consumes(args ...interface{}) {
 func Produces(args ...interface{}) {
 	return
 }
+
+func Maximum(val interface{}) {
+	return
+}
+
+func Minimum(val interface{}) {
+	return
+}
+
+func MaxLength(val int) {
+	return
+}
+
+func MinLength(val int) {
+	return
+}

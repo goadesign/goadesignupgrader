@@ -22,7 +22,16 @@ var User = Type("user", func() { // want `\Avariable declarations should be fixe
 var UserMedia = MediaType("application/vnd.user+json", func() { // want `\Avariable declarations should be fixed\z` `\AMediaType should be replaced with ResultType\z`
 	Attribute("id", Integer)                          // want `\AInteger should be replaced with Int\z`
 	Attribute("permissions", HashOf(String, Boolean)) // want `\AHashOf should be replaced with MapOf\z`
-	Attribute("created_at", DateTime)                 // want `\ADateTime should be replaced with String \+ Format\(FormatDateTime\)\z`
+	Attribute("interests", HashOf(String, Integer,    // want `\AHashOf should be replaced with MapOf\z` `\AInteger should be replaced with Int\z`
+		func() { // want `\Aoptional DSL for key of HashOf should be set by Key\z`
+			MinLength(1)
+			MaxLength(16)
+		}, func() { // want `\Aoptional DSL for value of HashOf should be set by Elem\z`
+			Minimum(1)
+			Maximum(5)
+		},
+	))
+	Attribute("created_at", DateTime) // want `\ADateTime should be replaced with String \+ Format\(FormatDateTime\)\z`
 })
 
 var _ = Resource("user", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`

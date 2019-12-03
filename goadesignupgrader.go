@@ -311,7 +311,7 @@ func analyzeGenericDSL(pass *analysis.Pass, node ast.Node) bool {
 			case "Attribute":
 				changed = analyzeAttribute(pass, expr) || changed
 			case "HashOf":
-				changed = analyzeHashOf(pass, ident) || changed
+				changed = analyzeHashOf(pass, expr, ident) || changed
 			case "Metadata":
 				changed = analyzeMetadata(pass, ident) || changed
 			default:
@@ -347,9 +347,57 @@ func analyzeHTTPStatusConstant(pass *analysis.Pass, ident *ast.Ident) bool {
 	return true
 }
 
-func analyzeHashOf(pass *analysis.Pass, ident *ast.Ident) bool {
+func analyzeHashOf(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `HashOf should be replaced with MapOf`})
 	ident.Name = "MapOf"
+	var (
+		changed bool
+		args    []ast.Expr
+		list    []ast.Stmt
+	)
+	for i, expr := range expr.Args {
+		switch i {
+		case 2:
+			pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `optional DSL for key of HashOf should be set by Key`})
+			list = append(list, &ast.ExprStmt{
+				X: &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "Key",
+					},
+					Args: []ast.Expr{
+						expr,
+					},
+				},
+			})
+			changed = true
+		case 3:
+			pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `optional DSL for value of HashOf should be set by Elem`})
+			list = append(list, &ast.ExprStmt{
+				X: &ast.CallExpr{
+					Fun: &ast.Ident{
+						Name: "Elem",
+					},
+					Args: []ast.Expr{
+						expr,
+					},
+				},
+			})
+			changed = true
+		default:
+			args = append(args, expr)
+		}
+	}
+	if len(list) > 0 {
+		args = append(args, &ast.FuncLit{
+			Type: &ast.FuncType{},
+			Body: &ast.BlockStmt{
+				List: list,
+			},
+		})
+	}
+	if changed {
+		expr.Args = args
+	}
 	return true
 }
 
