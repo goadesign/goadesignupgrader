@@ -496,6 +496,7 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, parent *[]ast.Stmt, grandparent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: expr.Pos(), Message: `Response should be wrapped by HTTP`})
 	var (
+		changed       bool
 		errorResponse bool
 		args          []ast.Expr
 	)
@@ -505,6 +506,7 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 			switch t.Name {
 			case "ErrorMedia":
 				pass.Report(analysis.Diagnostic{Pos: t.Pos(), Message: `ErrorMedia should be removed`})
+				changed = true
 				continue
 			case "BadRequest", "Unauthorized", "PaymentRequired", "Forbidden", "NotFound",
 				"MethodNotAllowed", "NotAcceptable", "ProxyAuthRequired", "RequestTimeout", "Conflict",
@@ -533,7 +535,7 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 			case "Continue", "SwitchingProtocols",
 				"OK", "Created", "Accepted", "NonAuthoritativeInfo", "NoContent", "ResetContent", "PartialContent",
 				"MultipleChoices", "MovedPermanently", "Found", "SeeOther", "NotModified", "UseProxy", "TemporaryRedirect":
-				analyzeHTTPStatusConstant(pass, t)
+				changed = analyzeHTTPStatusConstant(pass, t) || changed
 			}
 			args = append(args, t)
 		case *ast.FuncLit:
@@ -553,9 +555,9 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 				}
 				switch i.Name {
 				case "Media":
-					analyzeMedia(pass, s, i, grandparent, errorResponse)
+					changed = analyzeMedia(pass, s, i, grandparent, errorResponse) || changed
 				case "Status":
-					analyzeStatus(pass, s, i, &list)
+					changed = analyzeStatus(pass, s, i, &list) || changed
 				default:
 					list = append(list, s)
 				}
@@ -570,7 +572,7 @@ func analyzeResponse(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr
 			args = append(args, t)
 		}
 	}
-	if len(expr.Args) != len(args) {
+	if changed {
 		expr.Args = args
 	}
 	*parent = append(*parent, stmt)
