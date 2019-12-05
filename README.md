@@ -64,3 +64,7 @@ $ goadesignupgrader -fix [design package] | gofmt -s -w
 * `Routing`
 * `Status`
 * `TRACE`
+
+## License
+
+[MIT License](LICENSE)
