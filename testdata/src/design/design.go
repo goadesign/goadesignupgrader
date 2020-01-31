@@ -37,6 +37,7 @@ var UserMedia = MediaType("application/vnd.user+json", func() { // want `\Avaria
 var _ = Resource("user", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`
 	BasePath("/users")          // want `\ABasePath should be replaced with Path and wrapped by HTTP\z`
 	CanonicalActionName("show") // want `\ACanonicalActionName should be replaced with CanonicalMethod and wrapped by HTTP\z`
+	DefaultMedia(UserMedia)     // want `\ADefaultMedia should be removed\z`
 	Headers(func() {            // want `\AHeaders should be wrapped by HTTP\z`
 		Header("Time-Zone")
 	})

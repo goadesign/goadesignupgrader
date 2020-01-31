@@ -293,6 +293,11 @@ func analyzeDateTime(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 	return true
 }
 
+func analyzeDefaultMedia(pass *analysis.Pass, ident *ast.Ident) bool {
+	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `DefaultMedia should be removed`})
+	return true
+}
+
 func analyzeGenericDSL(pass *analysis.Pass, node ast.Node) bool {
 	var changed bool
 	ast.Inspect(node, func(n ast.Node) bool {
@@ -513,6 +518,8 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
 			case "CanonicalActionName":
 				analyzeCanonicalActionName(pass, stmt, ident, &listResourceHTTP)
+			case "DefaultMedia":
+				analyzeDefaultMedia(pass, ident)
 			case "Headers":
 				analyzeHeaders(pass, stmt, &listResourceHTTP)
 			case "Params":

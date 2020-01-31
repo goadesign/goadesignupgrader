@@ -115,3 +115,7 @@ func MinLength(val int) {
 func Parent(p string) {
 	return
 }
+
+func DefaultMedia(val interface{}, viewName ...string) {
+	return
+}

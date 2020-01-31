@@ -46,6 +46,7 @@ $ goadesignupgrader -fix [design package]; gofmt -s -w .
 * `CanonicalActionName`
 * `Consumes`
 * `DELETE`
+* `DefaultMedia`
 * `GET`
 * `HEAD`
 * `HashOf`
