@@ -25,7 +25,7 @@ $ goadesignupgrader -fix [design package]
 It's recommended to use together with gormt.
 
 ```sh
-$ goadesignupgrader -fix [design package] | gofmt -s -w
+$ goadesignupgrader -fix [design package]; gofmt -s -w .
 ```
 
 ## Supported diagnostics
