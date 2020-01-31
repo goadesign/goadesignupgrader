@@ -76,3 +76,7 @@ var _ = Resource("user", func() { // want `\Avariable declarations should be fix
 		})
 	})
 })
+
+var _ = Resource("post", func() { // want `\Avariable declarations should be fixed\z` `\AResource should be replaced with Service\z`
+	Parent("user") // want `\AParent should be wrapped by HTTP\z`
+})

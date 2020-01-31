@@ -468,6 +468,12 @@ func analyzeParams(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) 
 	return true
 }
 
+func analyzeParent(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
+	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Parent should be wrapped by HTTP`})
+	*parent = append(*parent, stmt)
+	return true
+}
+
 func analyzeProduces(pass *analysis.Pass, stmt *ast.ExprStmt, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: stmt.Pos(), Message: `Produces should be wrapped by HTTP`})
 	*parent = append(*parent, stmt)
@@ -511,6 +517,8 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 				analyzeHeaders(pass, stmt, &listResourceHTTP)
 			case "Params":
 				analyzeParams(pass, stmt, &listResourceHTTP)
+			case "Parent":
+				analyzeParent(pass, stmt, &listResourceHTTP)
 			case "Response":
 				analyzeResponse(pass, stmt, expr, &listResourceHTTP, &listResource)
 			default:
