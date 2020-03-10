@@ -72,7 +72,7 @@ func analyzeAPI(pass *analysis.Pass, expr *ast.CallExpr) bool {
 			}
 			switch ident.Name {
 			case "BasePath":
-				changed = analyzeBasePath(pass, stmt, ident, &listAPIHTTP) || changed
+				changed = analyzeBasePath(pass, stmt, expr, ident, &listAPIHTTP) || changed
 			case "Consumes":
 				changed = analyzeConsumes(pass, stmt, &listAPIHTTP) || changed
 			case "Params":
@@ -247,9 +247,20 @@ func analyzeAttribute(pass *analysis.Pass, expr *ast.CallExpr) bool {
 	return changed
 }
 
-func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, ident *ast.Ident, parent *[]ast.Stmt) bool {
+func analyzeBasePath(pass *analysis.Pass, stmt *ast.ExprStmt, expr *ast.CallExpr, ident *ast.Ident, parent *[]ast.Stmt) bool {
 	pass.Report(analysis.Diagnostic{Pos: ident.Pos(), Message: `BasePath should be replaced with Path and wrapped by HTTP`})
 	ident.Name = "Path"
+	for _, e := range expr.Args {
+		e, ok := e.(*ast.BasicLit)
+		if !ok {
+			continue
+		}
+		replaced := replaceWildcard(e.Value)
+		if replaced != e.Value {
+			pass.Report(analysis.Diagnostic{Pos: e.Pos(), Message: `colons in BasePath should be replaced with curly braces`})
+			e.Value = replaced
+		}
+	}
 	*parent = append(*parent, stmt)
 	return true
 }
@@ -515,7 +526,7 @@ func analyzeResource(pass *analysis.Pass, expr *ast.CallExpr, ident *ast.Ident) 
 			case "Action":
 				analyzeAction(pass, stmt, expr, ident, &listResource)
 			case "BasePath":
-				analyzeBasePath(pass, stmt, ident, &listResourceHTTP)
+				analyzeBasePath(pass, stmt, expr, ident, &listResourceHTTP)
 			case "CanonicalActionName":
 				analyzeCanonicalActionName(pass, stmt, ident, &listResourceHTTP)
 			case "DefaultMedia":
