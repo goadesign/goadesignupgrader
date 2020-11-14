@@ -3,7 +3,7 @@ package goadesignupgrader_test
 import (
 	"testing"
 
-	"github.com/tchssk/goadesignupgrader"
+	"github.com/goadesign/goadesignupgrader"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

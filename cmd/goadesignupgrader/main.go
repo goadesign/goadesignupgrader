@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/tchssk/goadesignupgrader"
+	"github.com/goadesign/goadesignupgrader"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 

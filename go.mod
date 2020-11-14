@@ -1,4 +1,4 @@
-module github.com/tchssk/goadesignupgrader
+module github.com/goadesign/goadesignupgrader
 
 go 1.13
 
