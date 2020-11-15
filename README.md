@@ -2,12 +2,12 @@
 
 A tool to upgrade a design definition for [Goa](https://github.com/goadesign/goa) from v1 to v3
 
-[![GoDoc](https://godoc.org/github.com/tchssk/goadesignupgrader?status.svg)](https://godoc.org/github.com/tchssk/goadesignupgrader) [![CircleCI](https://circleci.com/gh/tchssk/goadesignupgrader.svg?style=shield&circle-token=736c8b4099ed93ee5f3ad19330c0751df6b86ad4)](https://circleci.com/gh/tchssk/goadesignupgrader) [![GitHub Actions](https://github.com/tchssk/goadesignupgrader/workflows/Go/badge.svg)](https://github.com/tchssk/goadesignupgrader/actions) ![GitHub](https://img.shields.io/github/license/tchssk/goadesignupgrader) [![GolangCI](https://golangci.com/badges/github.com/tchssk/goadesignupgrader.svg)](https://golangci.com/r/github.com/tchssk/goadesignupgrader)
+[![GoDoc](https://godoc.org/github.com/goadesign/goadesignupgrader?status.svg)](https://godoc.org/github.com/goadesign/goadesignupgrader) [![GitHub Actions](https://github.com/goadesign/goadesignupgrader/workflows/Go/badge.svg)](https://github.com/goadesign/goadesignupgrader/actions) ![GitHub](https://img.shields.io/github/license/goadesign/goadesignupgrader)
 
 ## Installation
 
 ```sh
-$ go get github.com/tchssk/goadesignupgrader/...
+$ go get github.com/goadesign/goadesignupgrader/...
 ```
 
 ## Usage
